@@ -1,0 +1,11 @@
+- insert:
+    - id: codex-dsh-desktop
+      name: 'codex-dsh-desktop'
+      config:
+        host: 127.0.0.1
+        port: 59873
+        path: /mcp
+        model:
+          provider: deepseek-account
+          model: deepseek-flash
+          reasoningEffort: high

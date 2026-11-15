@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Codex DSH 桌面桥",
+    "description": "让 Codex 桌面等外部规划器通过 MCP 在本应用内创建、驱动并监督 DeepSeek 会话。"
+  }
+}

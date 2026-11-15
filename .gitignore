@@ -1,0 +1,11 @@
+node_modules/
+*.tgz
+.bridge-local/
+.env
+.env.*
+!.env.example
+*.log
+.npm-cache/
+.tmp-verify/
+agent-team-workspace/
+demo/
