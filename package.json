@@ -1,6 +1,6 @@
 {
   "name": "codex-dsh-desktop",
-  "version": "1.1.0",
+  "version": "1.2.2",
   "private": true,
   "description": "MCP bridge that lets an external planner (Codex desktop) create, drive, and supervise DeepSeek sessions inside the DSH desktop app.",
   "type": "module",
@@ -28,7 +28,6 @@
     "lib/sessions.js",
     "lib/registry.js",
     "lib/render.js",
-    "lib/briefing.js",
     "locale/en.json",
     "locale/zh.json",
     "icon.svg",

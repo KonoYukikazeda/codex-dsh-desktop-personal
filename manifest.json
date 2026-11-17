@@ -1,144 +1,125 @@
 {
-  "archive": "codex-dsh-desktop-personal-1.1.0",
-  "version": "1.1.0",
-  "generatedAt": "2026-11-15T05:05:16.371Z",
-  "fileCount": 27,
-  "totalSize": 287711,
+  "version": "1.2.2",
   "files": [
     {
       "path": ".gitignore",
-      "size": 131,
+      "bytes": 131,
       "sha256": "9a96d6f2aa439f68e00caff9955840530fa918061b680a76c7133bac658a440a"
     },
     {
-      "path": "ARCHIVE.md",
-      "size": 637,
-      "sha256": "110e58c0c9b974ab9335b184e6c4468e822bbb7da7b00f743c767be42d1bc668"
+      "path": "README.md",
+      "bytes": 27172,
+      "sha256": "a867c6b2bad44aea0e3c9309acfa90ef56fdefc0bd2945bc6fe7467c638d1daf"
     },
     {
-      "path": "README.md",
-      "size": 24799,
-      "sha256": "a483207765b3d3280614e0ff21d0476b93815306dcd14f091d0c2b1a5081e3f3"
+      "path": "package.json",
+      "bytes": 910,
+      "sha256": "0b273fd42a03cc6fc87bb66168aa367ebfa32c3a963960310324e24ffb1aee8c"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 44065,
+      "sha256": "29c086933db3cd545020eeba42ad7788bf6157b47755ce858ab6d50ddef2bc99"
     },
     {
       "path": "cordis.patch.yml",
-      "size": 262,
+      "bytes": 262,
       "sha256": "ee7af599c22a8a955711bd26ca6b57a6f3c89f88176ecf8e6ca58ddccd1aa052"
     },
     {
       "path": "icon.svg",
-      "size": 383,
+      "bytes": 383,
       "sha256": "8504bf2cbd3838caf52f845f55a867c388989efb3df6a4da546a5d9cd018b884"
     },
     {
       "path": "index.js",
-      "size": 2901,
-      "sha256": "c1568591c092dde7e600048fdf866345d9295d6890c1a72b8466c6f1d70d3769"
-    },
-    {
-      "path": "lib/briefing.js",
-      "size": 5101,
-      "sha256": "394bb63ab20a572ee755aab15e5799daabab67d89e2ce4415be38948471283f4"
+      "bytes": 3403,
+      "sha256": "7f90eb5aa66c5fc4e2b2b44abafd0a60225b4a0823e94906496a5310b3c5bf3f"
     },
     {
       "path": "lib/registry.js",
-      "size": 8403,
-      "sha256": "e71b2948970d9682869bf670e5e4bfc0d010fa695f0328273f4a2bca09fbae9a"
+      "bytes": 13229,
+      "sha256": "695c74b976a18710f2cccabebe3acbff8e1b61048f7b5d18281492286f7386c1"
     },
     {
       "path": "lib/render.js",
-      "size": 3504,
+      "bytes": 3504,
       "sha256": "c9e2b8c77dd068aae071cc63030155896bf4044bb30a38887479f4587f48e8e2"
     },
     {
       "path": "lib/server.js",
-      "size": 11268,
+      "bytes": 11268,
       "sha256": "04599348ce0050560132959e500873faa88eba2f5f49b99d4d6a6505b26610c8"
     },
     {
       "path": "lib/sessions.js",
-      "size": 36274,
-      "sha256": "015c46de773c09a56d942a852edd83c2338f34a29ce0f27a234005b4b582eafd"
+      "bytes": 44040,
+      "sha256": "acd688afadd701e508fecada1864b74f68d95efcc73a0284068b537194433c61"
     },
     {
       "path": "lib/token.js",
-      "size": 600,
+      "bytes": 600,
       "sha256": "9271bc5f49787ac3114fdc3fa5325e3e0d8ff3c04361af518df1b6f26a52e1b3"
     },
     {
       "path": "lib/tools.js",
-      "size": 8239,
-      "sha256": "cbe8a9ae5d44946b2de4da2401d536c4cc6be9b23cc8315a2e06c4e4f82db68b"
+      "bytes": 11140,
+      "sha256": "509536589659a89e1a4f71222f41adad6d0c754e56ddba1a7ee4f9d3d81747de"
     },
     {
       "path": "locale/en.json",
-      "size": 201,
+      "bytes": 201,
       "sha256": "ed6579b6ededa9dc5f9c30d4171777536219a550d1cd19c5fe887d4e2a48da2e"
     },
     {
       "path": "locale/zh.json",
-      "size": 187,
+      "bytes": 187,
       "sha256": "d27f9bc7ace7c7579debff89695e97dba5203516563d4d7acb3f6401c2d8df52"
     },
     {
-      "path": "package-lock.json",
-      "size": 44065,
-      "sha256": "384a1d44405847b82f350d5f2cfd19a43a1a3fc02c5277362e4b0733ebbfbd77"
-    },
-    {
-      "path": "package.json",
-      "size": 934,
-      "sha256": "6e286a382a884bb7a1800f29b92d686689fa1b78c2e9aed88e33dd25b4be4879"
-    },
-    {
-      "path": "releases/codex-dsh-desktop-1.1.0.tgz",
-      "size": 32898,
-      "sha256": "8f3dbcb81fc936a0bb86e179e424eea2bcd09c0a57a79379f65db1927edade3c"
-    },
-    {
-      "path": "scripts/smoke.mjs",
-      "size": 14975,
-      "sha256": "c5629483245093c69b4445a11e311364373f644fd605b0ce9c17bd0cda0cffa2"
-    },
-    {
-      "path": "test/briefing.test.js",
-      "size": 4017,
-      "sha256": "d86196f2a69a00b9eb0aed3c3422cb17935ec5b760f63068cd8a974a2549a2c8"
-    },
-    {
       "path": "test/index.test.js",
-      "size": 8658,
-      "sha256": "42970d809a5da51bb28bf2e99684c281c8d0a8c6b262b98dfb17d73b506879a6"
+      "bytes": 9141,
+      "sha256": "03b41d1f971c7fb5c10bfbaa5d042a56c863ad3b7854c7c7e8273cf303d67764"
     },
     {
       "path": "test/registry.test.js",
-      "size": 4683,
-      "sha256": "1a97e38b719a82ee5941b03b3a4a01aae78c0793ada35b65f16c3a801141b762"
+      "bytes": 7924,
+      "sha256": "515b95a0fd8db59292aabf8679ecff4248b1ea4c212fc107c5cd86a511fecab6"
     },
     {
       "path": "test/render.test.js",
-      "size": 3689,
+      "bytes": 3689,
       "sha256": "76af6f3dac4f34038a9b8620efe35f440a0f51c7d7dd40ef19f68d17a8b8f5d8"
     },
     {
       "path": "test/server.test.js",
-      "size": 12441,
+      "bytes": 12441,
       "sha256": "9d5498968e4bfa60e4bb005a9ab227d9417a55378d340854b5709203958f56e0"
     },
     {
       "path": "test/sessions.test.js",
-      "size": 52723,
-      "sha256": "d08662cc85f7e28c6735b362a87e68e4447bf01c8ac04d57da6c84cb096bb5c2"
+      "bytes": 64933,
+      "sha256": "06d6a9fafa889d552c038a7d8c7b74a0063c29346115a81568f779b56d4be515"
     },
     {
       "path": "test/token.test.js",
-      "size": 1126,
+      "bytes": 1126,
       "sha256": "620d39aae3eb96f2dbe76a164a6b98aeab2a44105c5aa477484d410a00fa287e"
     },
     {
       "path": "test/tools.test.js",
-      "size": 4612,
-      "sha256": "51cb72c31a6755877f12751beaa9f07c4b383b0f42e14a4746662fa2480544ed"
+      "bytes": 5968,
+      "sha256": "eeecdb8fb73eba58416c5f2dea4cee4f25c87f50e9ade949839664907ac334bd"
+    },
+    {
+      "path": "scripts/smoke.mjs",
+      "bytes": 14975,
+      "sha256": "c5629483245093c69b4445a11e311364373f644fd605b0ce9c17bd0cda0cffa2"
+    },
+    {
+      "path": "releases/codex-dsh-desktop-1.2.2.tgz",
+      "bytes": 35528,
+      "sha256": "e3496e144f33614a02bf15b1b0e93e197920b21287c2bd35f16fc63b6db2d2c1"
     }
   ]
 }

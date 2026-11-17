@@ -8,9 +8,9 @@
 
 - 在指定工作区创建真实 DSH 会话，选择配置的 DeepSeek 模型；用户能在桌面侧栏查看思考、回复和工具执行过程。
 - 将完整模块要求交给多个 worker，并通过事件分页、流式进度和等待工具监督执行。
-- 自动把 worker 与 session 绑定保存到当前 DSH profile；DSH 或插件重启后仍用原 `sessionId` 继续派工，MCP 客户端重连也看到同一批 worker。
+- 自动把 worker 与 session 绑定、客户/用途/生命周期元数据保存到当前 DSH profile 或 `stateFile`；DSH 或插件重启后仍用原 `sessionId` 继续派工，MCP 客户端重连也看到同一批 worker。
 - 执行结束后返回包含会话 ID 的 `handoff`，由 Codex 审查修改、运行验收，并处理关键步骤。
-- 验收需要返工或追加功能时，沿用同一个 `workerId` 和会话上下文，附带工作区文件变更简报。
+- 验收需要返工或追加功能时，沿用同一个 `workerId` 和会话上下文。
 
 ```text
 Codex / GPT：计划、协调、关键步骤、最终验收
@@ -76,6 +76,7 @@ npm ci
 
 ```yaml
         workspace: D:/projects/my-project
+        stateFile: E:/APP/codex-dsh-desktop-data/workers.json
 ```
 
 `cwd` 可以指向其他项目，MCP 名称保持 `codex-dsh-desktop`。同一 worker 创建后不能更换工作区。Windows YAML 路径建议使用 `/`。
@@ -88,21 +89,21 @@ npm ci
 npm test
 npm pack --dry-run
 npm pack
-Resolve-Path ./codex-dsh-desktop-1.1.0.tgz
+Resolve-Path ./codex-dsh-desktop-1.2.2.tgz
 ```
 
 最后一条命令显示生成包的绝对路径。在 DSH 侧栏进入「插件」→「添加插件」→「安装第三方插件」，在「包名或地址」填入这个 `.tgz` 的绝对路径，然后点击「安装」。确认插件已启用。
 
 也可以在 DSH 的 Creator（创造）模式新建会话，发送以下请求，将路径改成上一步的结果：
 
-> 请使用 plugin_manager 安装并启用本地 bundle，action 为 install_bundle，target 为 D:/path/to/codex-dsh-desktop/codex-dsh-desktop-1.1.0.tgz，enabled 为 true。检查安装结果中的 application 和 warnings，说明插件是否已应用，以及是否需要重启。
+> 请使用 plugin_manager 安装并启用本地 bundle，action 为 install_bundle，target 为 D:/path/to/codex-dsh-desktop/codex-dsh-desktop-1.2.2.tgz，enabled 为 true。检查安装结果中的 application 和 warnings，说明插件是否已应用，以及是否需要重启。
 
 对应的官方工具参数是：
 
 ```json
 {
   "action": "install_bundle",
-  "target": "D:/path/to/codex-dsh-desktop/codex-dsh-desktop-1.1.0.tgz",
+  "target": "D:/path/to/codex-dsh-desktop/codex-dsh-desktop-1.2.2.tgz",
   "enabled": true
 }
 ```
@@ -115,7 +116,7 @@ MCP endpoint listening at http://127.0.0.1:59873/mcp
 
 这是 **DSH host 插件**。直接运行 `node index.js` 不会启动服务；单独执行 `npm ci`、打包或复制目录也不等于安装到 DSH。
 
-worker 与 session 的绑定默认保存在当前 DSH profile 的 `codex-dsh-desktop/workers.json`，由 DSH 的 `profileContext.dir` 决定，普通安装无需额外配置；不要把它指向业务目录或 MCP 客户端目录。
+worker 与 session 的绑定默认保存在当前 DSH profile 的 `codex-dsh-desktop/workers.json`，由 DSH 的 `profileContext.dir` 决定，普通安装无需额外配置；不要把它指向业务目录或 MCP 客户端目录。若本机把索引放在插件源码之外，可在插件配置中设置 `stateFile`，例如本机使用 `E:/APP/codex-dsh-desktop-data/workers.json`；该配置只影响本插件的索引位置。
 
 ### 4. 注册到 Codex
 
@@ -133,7 +134,7 @@ codex mcp get codex-dsh-desktop
 url = "http://127.0.0.1:59873/mcp"
 ```
 
-在 Codex 桌面端刷新 MCP 连接，必要时重新打开应用，使它读取更新后的配置。若已有同名配置，先检查当前 URL，避免重复添加。连接后应出现下述七个工具。
+在 Codex 桌面端刷新 MCP 连接，必要时重新打开应用，使它读取更新后的配置。若已有同名配置，先检查当前 URL，避免重复添加。连接后应出现下述九个工具。
 
 ### 5. 检查首次运行
 
@@ -163,19 +164,21 @@ bearer_token_env_var = "CODEX_DSH_MCP_TOKEN"
 
 | 工具 | 用途与主要参数 |
 | --- | --- |
-| `dsh_start_worker` | `workerId`、`task` 必填；可选 `role` 和 `cwd` 或 `workspaceId`。两个工作区选择参数互斥，均省略时使用插件默认工作区。创建可见会话、选择 DeepSeek 模型并派发首项任务；已存在的 `workerId`（包括重启后恢复的）继续使用原会话。 |
-| `dsh_bind_worker` | `workerId`、`sessionId` 必填，可选 `role`。只把已有 DSH 会话绑定到 worker 并读取状态，不派发任务、不改历史、不选模型、不归档；用于一次性迁入此前未自动保存的旧会话。同一 `workerId`/`sessionId` 重复绑定幂等，冲突或会话缺失会明确报错。 |
-| `dsh_assign_task` | 给现有 `workerId`（包括自动恢复或手动绑定的 worker）派发完整 `task`。`mode: "queue"` 为默认值，排在当前工作之后；`mode: "steer"` 用于重定向进行中的工作。附带从上次派发以来的工作区元数据变更简报。 |
-| `dsh_list_workers` | 查看当前 DSH profile 已持久保存的 worker、桌面会话 ID、职责、状态及最近派发的任务。DSH 会话被删除或缺失时会显式报告 `missingSession`/`sessionError`，不会冒充可复用。 |
+| `dsh_start_worker` | `workerId`、`task` 必填；可选 `role`、`cwd` 或 `workspaceId`，以及 `customer`/`purpose`/`lifecycle` 元数据。两个工作区选择参数互斥，均省略时使用插件默认工作区。创建可见会话、选择 DeepSeek 模型并派发首项任务；已存在的 `workerId`（包括重启后恢复的）继续使用原会话。archived worker 不能通过 start 派工，需先恢复。 |
+| `dsh_bind_worker` | `workerId`、`sessionId` 必填，可选 `role` 及 `customer`/`purpose`/`lifecycle` 元数据。只把已有 DSH 会话绑定到 worker 并读取状态，不派发任务、不改历史、不选模型、不归档 DSH 会话；用于一次性迁入此前未自动保存的旧会话。同一 `workerId`/`sessionId` 重复绑定幂等，冲突或会话缺失会明确报错。 |
+| `dsh_assign_task` | 给现有 active `workerId`（包括自动恢复或手动绑定的 worker）派发完整 `task`。`mode: "queue"` 为默认值，排在当前工作之后；`mode: "steer"` 用于重定向进行中的工作。后续任务由插件在正文前加固定来源标记 `[GPT]:` + 换行，再接原样正文；archived worker 拒绝派工并提示先恢复。 |
+| `dsh_list_workers` | 查看当前 DSH profile 已持久保存的 worker、桌面会话 ID、职责、`customer`/`purpose`/`lifecycle`、状态及最近任务摘要。默认只列 active；`includeArchived: true` 才包含 archived。DSH 会话被删除或缺失时会显式报告 `missingSession`/`sessionError`，不会冒充可复用。 |
+| `dsh_update_worker_metadata` | 仅更新索引元数据：`customer`、`purpose`、`lifecycle` 至少一项。不发任务、不改历史、不选模型、不归档或删除 DSH 会话。`lifecycle: "active"` 恢复归档；`"archived"` 保留绑定但阻止新派工。 |
+| `dsh_forget_worker` | 仅移除一个非运行 worker 的索引登记，不删除或修改 DSH 会话；运行、排队、取消中或 admitting 时拒绝。移除后可用 `dsh_bind_worker` 找回同一会话。archived 条目也可 forget。 |
 | `dsh_get_progress` | 根据 `workerId`、`sinceSeq`、`limit` 读取最早一页尚未读取的持久事件，包含文本、思考和工具调用。冷会话历史读取失败会明确报错；历史接口不可用时返回 `historyUnavailable`，不把空结果当作完整历史。 |
 | `dsh_wait_worker` | 监督 worker 并返回进度页。默认 `waitFor: "completion"`，最多等待 `timeoutMs` 毫秒（默认 30000、上限 60000），直到当前 turn 结束、失败、取消、阻塞或超时；`waitFor: "progress"` 可在新事件或流式进度出现时及时返回。完成响应带有交回 Codex 审查的 handoff。接受与 get_progress 相同的 `sinceSeq` 和 `limit`。 |
-| `dsh_cancel_worker` | 取消该会话当前 turn，保留会话和待办队列。随后读取进度确认状态；队列会被保留，但 DSH 不保证取消后自动唤醒，通常需要再次派发任务才能继续。 |
+| `dsh_cancel_worker` | 取消该会话当前 turn，保留会话和待办队列。随后读取进度确认状态；队列会被保留，但 DSH 不保证取消后自动唤醒，通常需要再次派发任务才能继续。不改变 lifecycle 元数据。 |
 
-`workerId` 最长 128 字符，`role` 最长 1024 字符，`sessionId` 最长 256 字符，`task` 最长 200000 字符；工作区路径最长 4096 字符，工作区 ID 最长 256 字符。字符串必须包含非空白字符。工具拒绝未知字段；`limit` 为 1–500，默认 100。
+`workerId` 最长 128 个 Unicode 字符，`role` 最长 1024 个，`sessionId` 最长 256 个，`task` 最长 200000 个；`customer` 最长 80 个，`purpose` 最长 200 个，工作区路径最长 4096 个，工作区 ID 最长 256 个。字符串必须包含非空白字符，元数据拒绝控制字符。工具拒绝未知字段；`limit` 为 1–500，默认 100。
 
 ## 完整传递任务
 
-worker 不会自动继承 GPT 的聊天上下文。GPT 应在每次 `task` 中传递目标、职责边界、必读文件、完整要求、约束、验收方式和报告格式。插件保留 `task` 原文：首次派工只自动附加「本会话标题须以 "[GPT] - " 开头。」和「请用中文分析和汇报。」两句（task 已含标题句时不重复），后接原样任务，不再加角色、身份、读文件或主验包装，这些由任务正文和 AGENTS 承载；后续派工直接接原样任务，仅在正文前保留必要的中文工作区变化摘要，不加「本次补充」「任务原文」等标题。DeepSeek 做主验，GPT 复核关键结果与复用证据并做业务裁决。
+worker 不会自动继承 GPT 的聊天上下文。GPT 应在每次 `task` 中传递目标、职责边界、必读文件、完整要求、约束、验收方式和报告格式。插件保留 `task` 正文：首次派工只自动附加「本会话标题须以 "[GPT] - " 开头。」和「请用中文分析和汇报。」两句（task 已含标题句时不重复），后接原样任务，不再加角色、身份、读文件或主验包装，这些由任务正文和 AGENTS 承载；后续派工在正文前加固定来源标记 `[GPT]:` + 换行，再接原样任务（若 task 已精确以该标记开头则不重复）。不扫描工作区、不注入文件变化摘要，也不加「本次补充」「任务原文」等标题。DeepSeek 做主验，GPT 复核关键结果与复用证据并做业务裁决。
 
 例如，由 GPT 调用 `dsh_start_worker`：
 
@@ -230,19 +233,21 @@ DSH 持久事件的 `seq` 从 **0** 开始。首次读取省略 `sinceSeq`，或
 
 在同一 DSH profile 中，worker 完成一项任务后保留会话和上下文，GPT 可用 `dsh_assign_task` 继续派发工作。上下文复用可减少重复背景，但实际 token 用量仍受 DSH 的上下文整理、模型请求和缓存机制影响。
 
-插件在成功创建、派工或绑定后，把 `workerId`、`sessionId`、`role`、`workspaceId`、`cwd`、创建/更新时间及派工元数据保存到当前 DSH profile 的数据目录：`<profileContext.dir>/codex-dsh-desktop/workers.json`。这是 DSH 官方提供的 profile 作用域位置，不依赖 `process.cwd()`、MCP 客户端目录或业务目录，普通安装无需配置。写入使用同目录临时文件 + 原子重命名，并串行化并发保存；文件带版本号，损坏、版本不兼容、重复 worker/session 或读写失败都会明确报错，不会被静默当作空 registry 覆盖。测试或特殊部署可用 `config.stateFile` 显式覆盖路径。
+插件在成功创建、派工或绑定后，把 `workerId`、`sessionId`、`role`、`customer`、`purpose`、`lifecycle`、`workspaceId`、`cwd`、创建/更新时间及派工元数据保存到当前 DSH profile 的数据目录：默认 `<profileContext.dir>/codex-dsh-desktop/workers.json`；本机部署通过 `config.stateFile` 指向 `E:/APP/codex-dsh-desktop-data/workers.json`，以免升级插件源码时碰到索引。路径不依赖 `process.cwd()`、MCP 客户端目录或业务目录。写入使用同目录临时文件 + 原子重命名，并串行化并发保存；文件带版本号，v1 会在加载时补齐 v2 默认元数据并截断超长 `lastTask`，损坏、版本不兼容、重复 worker/session 或读写失败都会明确报错，不会被静默当作空 registry 覆盖。
+
+从旧的 profile 默认索引迁移时，先把原 `workers.json` 复制到目标数据目录作为备份，再用 `stateFile` 指向新位置启动；旧文件保留不删除。加载 v1 后插件会原子写回 v2，`lastTask` 超长时截断并标记 `lastTaskTruncated`。
+
+索引只保存 `lastTask` 的最多 500 个 Unicode 字符摘要，并用 `lastTaskTruncated` 明确标记是否截断；不保存完整任务历史。`customer` 最长 80 个 Unicode 字符、`purpose` 最长 200 个，`role` 最长 1024 个，`workerId` 最长 128 个；空值、超长或控制字符会被拒绝。总记录默认硬上限 **200**，archived 条目也计数；达到上限时明确拒绝新增，不会自动删除旧记录。需要腾出位置时用 `dsh_forget_worker` 移除一个非运行登记，它不会删除 DSH 会话，之后仍可用 `dsh_bind_worker` 找回。
 
 服务启动时先加载 registry，再开放 MCP 工具。插件用 DSH 的真实会话列表和会话状态校验旧绑定：恢复 `cwd` 等元数据，但不会自动发送 prompt、重放上次任务、取消任务、重新选模型或归档会话；冷会话需要新的 turn 事件才会被视为本轮完成。MCP 客户端断开或重连只影响传输会话，不会删除 registry；两个不同客户端看到同一批 worker。DSH 或插件重启后，原 `workerId` 继续派工时仍使用原 `sessionId`，不会额外创建会话。
 
-如果 DSH 会话已被真正删除，`dsh_list_workers` 会返回 `missingSession: true` 和 `sessionError`，派工/进度/取消会明确报错，插件不会静默新建替代会话。此前未保存的旧会话，用 `dsh_bind_worker` 把 `workerId` 与已有 `sessionId` 一次性绑定；它只绑定并读取状态，不发送任务、不改历史、不选模型、不归档，之后由 registry 自动恢复。同一 worker/session 重复绑定幂等；worker 与 session 的冲突会明确报错，写入失败会回滚，不留半绑定。
+`lifecycle` 是索引元数据，不等同于运行时 `idle`/`released`。`dsh_list_workers` 默认只列 active，传 `includeArchived: true` 才显示 archived；archived 拒绝新派工并提示先恢复，但已有会话仍可读取进度。用 `dsh_update_worker_metadata` 可设置 `customer`/`purpose`/`lifecycle`，恢复 archived 只需把 lifecycle 改回 active；它不会发任务、改历史、选模型、归档或删除 DSH 会话。
+
+如果 DSH 会话已被真正删除，`dsh_list_workers` 会返回 `missingSession: true` 和 `sessionError`，派工/进度/取消会明确报错，插件不会静默新建替代会话。此前未保存的旧会话，用 `dsh_bind_worker` 把 `workerId` 与已有 `sessionId` 一次性绑定；它只绑定并读取状态，不发送任务、不改历史、不选模型、不归档 DSH 会话，之后由 registry 自动恢复。同一 worker/session 重复绑定幂等；worker 与 session 的冲突会明确报错，写入失败会回滚，不留半绑定。
 
 再次派发前，若当前 DSH 提供 `workspaceRegistry.unarchiveSession`，插件会通过这个官方接口恢复已归档的原会话；恢复失败会返回派发错误，不会悄悄创建替代会话。
 
-变更简报的基线是该 worker **上次成功派发任务前采集的快照**，不是任务完成时的快照，因此上次任务自身造成的文件变化也会出现在后续简报中。
-
-快照只扫描文件路径、大小和修改时间，不读取文件正文。默认最多采集 5000 个文件、访问 1000 个目录，并跳过符号链接及 `.git`、`.dsh`、`.omx`、`node_modules`、缓存和常见构建输出目录。简报最多列出 80 个变更路径，其余数量会明确显示。达到上限或读取失败时明确报告覆盖不完整，不把未读取到的路径误报为删除；基线不完整时也不会推断无法确认的新增。
-
-这是一份帮助 worker 定位变化的简报。大小和修改时间都不变的内容变化、被忽略的目录和扫描期间发生的并发修改都可能未被发现。worker 每次继续工作都应重新阅读相关文件，并结合 `git diff` 检查实际变化。
+插件不会自动扫描工作区，也不会注入文件变化简报；继续任务时由 `task` 明确相关文件，worker 按需读取或查看 `git diff`。
 
 ## 文件与模块对应关系
 
@@ -253,16 +258,15 @@ DSH 持久事件的 `seq` 从 **0** 开始。首次读取省略 `sinceSeq`，或
 | `cordis.patch.yml` | 将插件插入 DSH profile，并配置监听地址、模型和可选默认工作区。 |
 | `index.js` | 插件入口，注入 DSH 服务、订阅事件，通过 Cordis effect 管理长期运行的资源。 |
 | `lib/server.js` | 回环 HTTP 端点、MCP 握手与工具调用、每客户端独立的 stateful transport、连接回收和关闭。 |
-| `lib/sessions.js` | worker 与 DSH 会话映射、创建/派发/复用/恢复/绑定/取消、生命周期判断、进度等待与 handoff。 |
-| `lib/registry.js` | profile 作用域的版本化 worker registry：加载校验、原子写入、串行化保存与冲突检测。 |
-| `lib/tools.js` | 七个 MCP 工具的名称、说明、JSON Schema 与输入校验。 |
+| `lib/sessions.js` | worker 与 DSH 会话映射、元数据/lifecycle、创建/派发/复用/恢复/绑定/forget/取消、生命周期判断、进度等待与 handoff。 |
+| `lib/registry.js` | profile/`stateFile` 作用域的 v2 worker registry：v1 兼容、元数据校验、500 字符摘要、200 条上限、原子写入、串行化保存与冲突检测。 |
+| `lib/tools.js` | 九个 MCP 工具的名称、说明、JSON Schema 与输入校验。 |
 | `lib/render.js` | 将持久事件和临时模型流转换成可读进度，处理分页文本上限及截断标记。 |
-| `lib/briefing.js` | 扫描工作区文件元数据，比较快照，为后续任务生成增量变更简报。 |
 | `lib/token.js` | 可选 Bearer token 校验。 |
 | `locale/zh.json`、`locale/en.json` | DSH 插件的中文、英文标题与描述。 |
 | `icon.svg` | 插件图标。 |
 | `scripts/smoke.mjs` | 连接真实 DSH 的只读端到端检查，验证文件读取证据、进度与同会话二次派发。 |
-| `test/*.test.js` | Node 内置测试，覆盖工具、会话恢复、registry、传输、插件生命周期、渲染、变更简报及 token。 |
+| `test/*.test.js` | Node 内置测试，覆盖工具、会话恢复、registry、传输、插件生命周期、渲染及 token。 |
 | `docs/plans/2026-10-18-desktop-mcp.md` | MCP 架构与验证计划。 |
 | `.gitignore` | 排除依赖、本机凭据、打包文件和临时产物。 |
 
@@ -297,6 +301,8 @@ node scripts/smoke.mjs --endpoint http://127.0.0.1:59873/mcp
 | 模型不存在 / provider 不可用 | 在 DSH 中配置官方 DeepSeek 渠道的 API Key，确认 `deepseek-official` 下的 `deepseek-flash` 可用；若自定义了 provider 标识或模型配置，同步修改插件配置。 |
 | 接收任务后没有输出 / 状态为 blocked | 打开返回的 `sessionId` 对应桌面会话，检查模型错误、权限、审批与事件中的阻塞原因；修正后向原 worker 重派。 |
 | `Unknown worker` | 该 `workerId` 尚未创建或绑定。先调用 `dsh_start_worker`；若旧会话此前未保存，用 `dsh_bind_worker` 迁入。若 registry 损坏或读写失败，按错误中的文件路径修复或移动文件；插件不会用空 registry 覆盖。 |
+| `archived worker` 拒绝派工 | 这是索引生命周期，不是运行状态。用 `dsh_update_worker_metadata` 将 `lifecycle` 改为 `active`，再派发任务；不需要重建会话。 |
+| 索引达到 200 条 | 不会自动淘汰，也不会删除 DSH 会话。用 `dsh_forget_worker` 移除非运行登记腾出位置；之后可用 `dsh_bind_worker` 找回同一会话。 |
 | 工具列表没有 `waitFor` 等新参数 | 确认 DSH 应用的是新包，再刷新或重连 Codex MCP；仅修改源码不会更新已安装包。 |
 | 等待返回 `timedOut: true` | 本次观察达到时限，检查状态并继续等待；超时不代表 DeepSeek 已结束。 |
 | 多个 worker 修改互相覆盖 | worker 共享工作区，需由 Codex 划分文件所有权、串行处理依赖并在交接后检查 diff。 |

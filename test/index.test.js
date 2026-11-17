@@ -63,7 +63,7 @@ test('plugin owns its server on the injected fiber and reuses workers across MCP
     const firstClient = await connect();
     assert.match(firstClient.getInstructions(), /复核关键结果/);
     assert.match(firstClient.getInstructions(), /同一 workerId/);
-    assert.equal((await firstClient.listTools()).tools.length, 7);
+    assert.equal((await firstClient.listTools()).tools.length, 9);
     const first = (await firstClient.callTool({ name: 'dsh_start_worker', arguments: { workerId: 'api', task: 'First task' } })).structuredContent;
     await firstClient.close();
     await writeFile(join(root, 'new.txt'), 'changed');
@@ -71,7 +71,8 @@ test('plugin owns its server on the injected fiber and reuses workers across MCP
     const second = (await nextClient.callTool({ name: 'dsh_start_worker', arguments: { workerId: 'api', task: 'Continue' } })).structuredContent;
     assert.equal(second.sessionId, first.sessionId);
     assert.equal(second.taskCount, 2);
-    assert.match(second.workspaceChanges, /new.txt/);
+    assert.equal(prompts[1].content.map((block) => block.text).join('\n'), '[GPT]:\nContinue');
+    assert.doesNotMatch(prompts[1].content.map((block) => block.text).join('\n'), /new\.txt|自本 worker/);
     assert.equal(prompts.length, 2);
     const progress = (await nextClient.callTool({ name: 'dsh_wait_worker', arguments: { workerId: 'api', timeoutMs: 0 } })).structuredContent;
     assert.equal(progress.succeeded, true);
@@ -127,13 +128,16 @@ test('a disposed and restarted bridge restores the same worker over the real MCP
     return client;
   }
 
+  let activeCleanup;
   try {
     const firstHost = host({});
+    activeCleanup = firstHost.cleanup;
     const firstClient = await connect(await firstHost.started);
     const first = (await firstClient.callTool({ name: 'dsh_start_worker', arguments: { workerId: 'api', task: 'First task' } })).structuredContent;
     assert.equal(first.sessionId, 'created-session');
     await firstClient.close();
     await firstHost.cleanup();
+    activeCleanup = undefined;
 
     const secondPrompts = [];
     const secondCreates = [];
@@ -145,8 +149,9 @@ test('a disposed and restarted bridge restores the same worker over the real MCP
       prompts: secondPrompts,
       creates: secondCreates
     });
+    activeCleanup = secondHost.cleanup;
     const secondClient = await connect(await secondHost.started);
-    assert.equal((await secondClient.listTools()).tools.length, 7);
+    assert.equal((await secondClient.listTools()).tools.length, 9);
     assert.match(secondClient.getInstructions(), /dsh_bind_worker/);
     const listed = (await secondClient.callTool({ name: 'dsh_list_workers', arguments: {} })).structuredContent.result;
     assert.equal(listed.length, 1);
@@ -157,17 +162,20 @@ test('a disposed and restarted bridge restores the same worker over the real MCP
     assert.equal(secondCreates.length, 0);
     assert.equal(secondPrompts.length, 1);
     assert.equal(secondPrompts[0].sessionId, first.sessionId);
+    assert.equal(secondPrompts[0].content.map((block) => block.text).join('\n'), '[GPT]:\nContinue after restart');
 
-    const bound = (await secondClient.callTool({ name: 'dsh_bind_worker', arguments: { workerId: 'legacy-worker', sessionId: 'legacy-session', role: 'legacy' } })).structuredContent;
+    const bound = (await secondClient.callTool({ name: 'dsh_bind_worker', arguments: { workerId: 'quote_demo', sessionId: 'legacy-session', role: 'legacy' } })).structuredContent;
     assert.equal(bound.bound, true);
     assert.equal(bound.sessionId, 'legacy-session');
     assert.equal(secondPrompts.length, 1, 'binding never sends a task');
     const afterBind = (await secondClient.callTool({ name: 'dsh_list_workers', arguments: {} })).structuredContent.result;
-    assert.deepEqual(afterBind.map((worker) => worker.workerId).sort(), ['api', 'legacy-worker']);
+    assert.deepEqual(afterBind.map((worker) => worker.workerId).sort(), ['api', 'quote_demo']);
     await secondClient.close();
     await secondHost.cleanup();
+    activeCleanup = undefined;
   } finally {
     await Promise.all(clients.map((client) => client.close().catch(() => undefined)));
+    await activeCleanup?.().catch(() => undefined);
     await rm(root, { recursive: true, force: true });
   }
 });

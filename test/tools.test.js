@@ -9,7 +9,7 @@ function tool(name, manager = {}) {
 test('bind exposes workerId/sessionId/role and forwards without a task', async () => {
   const calls = [];
   const bind = tool('dsh_bind_worker', { bindWorker: (args, extra) => { calls.push([args, extra]); return { bound: true }; } });
-  const args = { workerId: 'legacy-worker', sessionId: 'session-00000000-0000-4000-8000-000000000000', role: 'legacy' };
+  const args = { workerId: 'quote_demo', sessionId: 'session-demo-legacy', role: 'legacy' };
   validateToolArguments(bind, args);
   await bind.handler(args);
   assert.deepEqual(calls[0][0], args);
@@ -18,6 +18,28 @@ test('bind exposes workerId/sessionId/role and forwards without a task', async (
   assert.throws(() => validateToolArguments(bind, { workerId: 'legacy' }), /Missing required argument "sessionId"/);
   assert.throws(() => validateToolArguments(bind, { workerId: 'legacy', sessionId: '   ' }), /non-whitespace/i);
   assert.throws(() => validateToolArguments(bind, { workerId: 'legacy', sessionId: 's', task: 'x' }), /Unknown argument/);
+});
+
+test('metadata update, forget, and archived listing schemas are exposed and validated', () => {
+  const update = tool('dsh_update_worker_metadata');
+  validateToolArguments(update, { workerId: 'legacy', customer: '085', purpose: '迁移', lifecycle: 'archived' });
+  assert.throws(() => validateToolArguments(update, { workerId: 'legacy', customer: 'x'.repeat(81) }), /80/);
+  assert.throws(() => validateToolArguments(update, { workerId: 'legacy', lifecycle: 'paused' }), /one of/i);
+  assert.throws(() => validateToolArguments(update, { workerId: 'legacy', customer: '😀'.repeat(81) }), /80/);
+  validateToolArguments(update, { workerId: 'legacy', customer: '😀'.repeat(80) });
+
+  const forget = tool('dsh_forget_worker');
+  validateToolArguments(forget, { workerId: 'legacy' });
+  assert.throws(() => validateToolArguments(forget, {}), /Missing required argument "workerId"/);
+
+  const list = tool('dsh_list_workers');
+  validateToolArguments(list, {});
+  validateToolArguments(list, { includeArchived: true });
+  assert.throws(() => validateToolArguments(list, { includeArchived: 'yes' }), /boolean/);
+
+  const start = tool('dsh_start_worker');
+  validateToolArguments(start, { workerId: 'x', task: 't', customer: '085', purpose: '开发', lifecycle: 'active' });
+  validateToolArguments(start, { workerId: 'x', task: 't', lifecycle: 'archived' });
 });
 
 test('start exposes alternative workspace selectors and rejects selecting both', () => {
